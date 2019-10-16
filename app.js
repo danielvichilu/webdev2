@@ -28,7 +28,7 @@ let headless = null;
 const http = require("http");
 const WebSocketServer = require('ws').Server;
 const express = require('express');
-
+const https = require("https");
 const app = express();
 const webPort = serverOptions.listenPort;
 app.use(express.static('public'));
