@@ -9,7 +9,7 @@ module.exports =
       listenPort : process.env.PORT || 3000,
       hostName: "0.0.0.0", // ex) server.domain.com
       // --- for using HTTPS ---
-      useHttps: true,
+      useHttps:false,
       httpsKeyFile: './key/server.key',
       httpsCertFile: './key/server.cert',
 
