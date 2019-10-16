@@ -6,7 +6,7 @@ module.exports =
   {
     serverOptions: {
       // --- port and host name ---
-      listenPort : 3000,
+      listenPort : process.env.PORT,
       hostName: "ip.address()", // ex) server.domain.com
       // --- for using HTTPS ---
       useHttps: false,
