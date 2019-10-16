@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <link rel="stylesheet" href="./css/styles.css">
+
+ <title>Single Room MCU</title>
+  <script src="./js/browser_mcu_core.js"></script>
+  <script src="./js/pc_config.js"></script>
+  <script src="./js/mcu_peer.js"></script>
+</head>
+<body>
+<div class="wrapper">
+  <button onclick="connect()" style="flex: center;">Connect</button>
+</div>
+  <div id="remote_container"></div>
+  <div>
+    <canvas id="canvas_mix" hidden></canvas>
+  </div>  
+  <script src="./js/user.js"></script>
+</body>
+</html>

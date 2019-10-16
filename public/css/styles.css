@@ -1,0 +1,16 @@
+
+canvas{
+    width: 100%;
+}
+video {
+width: 100%;
+}
+
+.wrapper {
+    text-align: center;
+}
+
+.button {
+    position: absolute;
+    top: 50%;
+}
