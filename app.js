@@ -19,8 +19,8 @@ else {
 
 let sslOptions = {};
 if (serverOptions.useHttps) {
-  sslOptions.key = fs.readFileSync(serverOptions.httpsKeyFile).toString(),
-  sslOptions.cert = fs.readFileSync(serverOptions.httpsCertFile).toString()
+  sslOptions.key = {},
+  sslOptions.cert = {}
 }
 
 const childProcess = require('child_process');
