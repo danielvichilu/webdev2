@@ -1,2 +1,2 @@
 // ICE Server Configgg
-let _PeerConnectionConfig ={'iceServers': [{'urls': 'stun:stun.stunprotocol.org'}]};
+let _PeerConnectionConfig ={'iceServers': [{'urls': 'stun:stun.stunprotocol.org:3478'}]};
