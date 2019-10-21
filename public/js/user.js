@@ -9,24 +9,20 @@ function initMcu() {
   // mcu.setAudioMode(BrowserMCU.AUDIO_MODE_MINUS_ONE);
 }
 
-// --- setup peer manage functions ---
-setMCU(mcu);
-setDisconnectOneFunc(disconnectOne);
-setSendJsonFunc(sendJson);
-setBandwidth(512, 64);  // kps
-//setBandwidth(1024, 128);  // kps
-// --- prefix -----
-RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
-RTCSessionDescription = window.RTCSessionDescription || window.webkitRTCSessionDescription || window.mozRTCSessionDescription;
-
-// -------- websocket ----  
+function connectionUser(){
+    setMCU(mcu);
+    setDisconnectOneFunc(disconnectOne);
+    setSendJsonFunc(sendJson);
+    setBandwidth(512, 64);  // kps
+    //setBandwidth(1024, 128);  // kps
+    // -------- websocket ----  
 let wsProtocol = 'ws://';
 let protocol = window.location.protocol;
 
 if  (protocol === 'https:') {
   wsProtocol = 'wss://';
 }
-let wsUrl = wsProtocol +  window.location.hostname + ':' + window.location.port + '/';
+let wsUrl = wsProtocol +  window.location.hostname + ':' + window.location.port + '/';//
 console.log('websocket url=' + wsUrl);
 let ws = new WebSocket(wsUrl);
 ws.onopen = function(evt) {
@@ -39,6 +35,62 @@ ws.onmessage = function(evt) {
   const message = JSON.parse(evt.data);
   handleMessage(message);
 };
+// -----  signaling ----
+function sendJson(id, json) {
+    // --- websocket --
+    json.to = id;
+    const message = JSON.stringify(json);
+    ws.send(message);  
+    }
+    
+    function broadcastJson(json) {
+    
+    // --- websocket --
+    const message = JSON.stringify(json);
+    ws.send(message);
+    }
+    
+    
+    function connect() {
+    callMe(); // MUST BE REQUEST CALL
+    
+    updateButtons();
+    }
+    
+    function callMe() {
+    console.log('calling ..');
+    broadcastJson({type: "callme"});
+    }
+    
+    // close PeerConnection
+    function disconnectAll() {
+    broadcastJson({type: "bye"});
+    
+    // ---- close all peers ---
+    closeAllConnections();
+    
+    // --- remove all videos ---
+    mcu.removeAllRemoteVideo();
+    
+    // --- remove all audio ---
+    mcu.removeAllRemoteAudioMinusOne();
+    
+    // -- stop mix ---
+    console.log('--- stop mix ----');
+    mcu.stopMix();
+    
+    updateButtons();
+    }
+    setTimeout(function() {
+     connect() }, 500);
+}
+// --- setup peer manage functions ---
+
+// --- prefix -----
+RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
+RTCSessionDescription = window.RTCSessionDescription || window.webkitRTCSessionDescription || window.mozRTCSessionDescription;
+
+
 
 function handleMessage(message) {
   const fromId = message.from;
@@ -136,52 +188,7 @@ else {
 }
 }
 
-// -----  signaling ----
-function sendJson(id, json) {
-// --- websocket --
-json.to = id;
-const message = JSON.stringify(json);
-ws.send(message);  
-}
 
-function broadcastJson(json) {
-
-// --- websocket --
-const message = JSON.stringify(json);
-ws.send(message);
-}
-
-
-function connect() {
-callMe(); // MUST BE REQUEST CALL
-
-updateButtons();
-}
-
-function callMe() {
-console.log('calling ..');
-broadcastJson({type: "callme"});
-}
-
-// close PeerConnection
-function disconnectAll() {
-broadcastJson({type: "bye"});
-
-// ---- close all peers ---
-closeAllConnections();
-
-// --- remove all videos ---
-mcu.removeAllRemoteVideo();
-
-// --- remove all audio ---
-mcu.removeAllRemoteAudioMinusOne();
-
-// -- stop mix ---
-console.log('--- stop mix ----');
-mcu.stopMix();
-
-updateButtons();
-}
 
 function disconnectOne(peerid) {
 // -- remove Video --
