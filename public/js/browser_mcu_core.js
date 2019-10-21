@@ -349,6 +349,62 @@ function _calcGridHorzVert() {
       console.warn('NO Audio Tracks in stream');
     }
   }
+this.removeAllRemoteVideo = function() {
+    console.log('===== removeAllRemoteVideo ======');
+    for(let key in remoteVideos) {
+      let video = remoteVideos[key];
+      video.pause();
+      video.srcObject = null;
+      videoContainer.removeChild(video);
+    }
+    remoteVideos = [];
+
+    for(let key in remoteStreams) {
+      let stream = remoteStreams[key];
+      _stopStream(stream);
+    }
+    remoteStreams = [];
+
+    _calcGridHorzVert();
+    _clearMixCanvas();
+  }
+
+  // --- handling remote audio ---
+  this.addRemoteAudio = function(stream) {
+    console.log('addRemoteAudio()');
+
+    if (audioMode === BrowserMCU.AUDIO_MODE_NONE) {
+      // AUDIO_MODE_NONE
+      console.log('BrowserMCU.AUDIO_MODE_NONE: ignore remote audio');
+      return;
+    }
+
+    // --- check for double add ---
+    let existRemoteNode = inputNodes[stream.id];
+    if (existRemoteNode) {
+      console.warn('remote audio node ALREADY EXIST stream.id=' + stream.id);
+      return;
+    }
+
+    let remoteNode = audioContext.createMediaStreamSource(stream);
+    inputNodes[stream.id] = remoteNode;
+
+    if (audioMode === BrowserMCU.AUDIO_MODE_ALL) {
+      console.log('BrowserMCU.AUDIO_MODE_ALL: mix all audo');
+      remoteNode.connect(mixAllOutputNode);
+    }
+    else if (audioMode === BrowserMCU.AUDIO_MODE_MINUS_ONE) {
+      console.warn('DO NOT use addRemoteAudio() on BrowserMCU.AUDIO_MODE_MINUS_ONE');
+    }
+    else if (audioMode === BrowserMCU.AUDIO_MODE_NONE) {
+      // AUDIO_MODE_NONE
+      console.log('BrowserMCU.AUDIO_MODE_NONE: ignore remote audio');
+    }
+    else {
+      // WRONG audioMode
+      console.error('BAD audioMode');
+    }
+  }
 
   this.removeRemoteAudioMinusOne = function(peerId) {
     // -- remove from other outputs ----
