@@ -170,6 +170,7 @@ function initMcu() {
       initMcu();
 
   }, 500);
+}
 
 // /////----webSocketInternet----////
 // online()
