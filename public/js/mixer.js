@@ -54,8 +54,8 @@ let localstreamm = canvasMix.captureStream(25);
 
 setLocalStream(localstreamm);
 // --- setup peer manage functions ---
-setSendJsonFunc(sendJson);
-setDisconnectFunc(disconnect);
+// // setSendJsonFunc(sendJson);
+// setDisconnectFunc(disconnect);
 setBandwidth(512, 64);  // kps
 //setBandwidth(1024, 128);  // kps
 let mcu = new BrowserMCU();
@@ -70,35 +70,19 @@ function initMcu() {
 }
 
 // -------- websocket ----
-let wsProtocol = 'ws://';
-let protocol = window.location.protocol;
 
-if (protocol === 'https:') {
-  wsProtocol = 'wss://';
-}
-let wsUrl = wsProtocol +  window.location.hostname + ':' + window.location.port + '/';
-let ws = new WebSocket(wsUrl);
-ws.onopen = function (evt) {
-  console.log('ws open()');
-};
-ws.onerror = function (err) {
-  console.error('ws onerror() ERR:', err);
-};
-ws.onmessage = function (evt) {
-  const message = JSON.parse(evt.data);
-  {
-  handleMessage(message);
-  }
-};
-ws.onclose = function(evt) {
-  console.log('Socket is closed. Reconnect will be attempted in 1 second.', evt.reason);
-  setTimeout(function() {
+/////----webSocketInternet----////
+online()
+     window.addEventListener('offline', online);
+     window.addEventListener('online',  online);
+  
+function online(){
+  
   let wsProtocol = 'ws://';
-let protocol = window.location.protocol;
-
-if (protocol === 'https:') {
-  wsProtocol = 'wss://';
-}
+  let protocol = window.location.protocol;
+  if  (protocol === 'https:') {
+    wsProtocol = 'wss://';
+  }
     let wsUrl = wsProtocol +  window.location.hostname + ':' + window.location.port + '/';
     let ws = new WebSocket(wsUrl);
     ws.onopen = function (evt) {
@@ -112,106 +96,83 @@ if (protocol === 'https:') {
       {
       handleMessage(message);
       }
-    };
-    setSendJsonFunc(sendJson);
-setDisconnectFunc(disconnect);
-setBandwidth(512, 64);  // kps
-//setBandwidth(1024, 128);  // kps
-let mcu = new BrowserMCU();
-
-//let isMixStarted = false;
-function initMcu() {
-  // --- init at once ---
-  mcu.init(canvasMix, remoteContainer, BrowserMCU.AUDIO_MODE_ALL);
-  // --- set frame rate --
-  mcu.setFrameRate(25);
-
-}
-
-    function sendJson(id, json) {
-
-        // --- websocket --
-        json.to = id;
-        const message = JSON.stringify(json);
-       
-         ws.send(message);
-      }
-      
-      function broadcastJson(json) {
-        // --- websocket --
-        const message = JSON.stringify(json);
-       
-        ws.send(message);
-        
-      }
-      
-      // start PeerConnection
-      function connect() {
-        call();
-        // updateButtons();
-      }
-      
-      function call() {
-        console.log('calling ..');
-        broadcastJson({type: "call"});
-      }
-      
-      // close PeerConnection
-      function disconnect() {
-      
-        broadcastJson({type: "bye"});
-      
-        // ---- close all peers ---
-        closeAllConnections();
-        removeAllRemoteVideo();
-      
-        // updateButtons();
-      }
-      initMcu();
-
-  }, 500);
-}
-
-// /////----webSocketInternet----////
-// online()
-//      window.addEventListener('offline', online);
-//      window.addEventListener('online',  online);
+    
+  setSendJsonFunc(sendJson);
+  setDisconnectFunc(disconnect);
+  setBandwidth(512, 64);  // kps
+  //setBandwidth(1024, 128);  // kps
+  let mcu = new BrowserMCU();
   
-// function online(){
-//   if (navigator.onLine) {
-// let wi = new WebSocket('wss://appdevweb.herokuapp.com/');
-// wi.onopen = function(evt) {
-//   console.log('wi open()');
-// };
-// wi.onerror = function(err) {
-//   console.error('wi onerror() ERR:', err);
-// };
-// wi.onmessage = function(evt) {
-//   const message = JSON.parse(evt.data);
-//   handleMessage(message);
+  //let isMixStarted = false;
+  function initMcu() {
+    // --- init at once ---
+    mcu.init(canvasMix, remoteContainer, BrowserMCU.AUDIO_MODE_ALL);
+    // --- set frame rate --
+    mcu.setFrameRate(25);
+  
+  }
+  
+  function sendJson(id, json) {
 
-//   setSendJsonFunc(sendJson);
-//   function sendJson(id, json) {
+    // --- websocket --
+    json.to = id;
+    const message = JSON.stringify(json);
+   
+     ws.send(message);
+  }
+  
+  function broadcastJson(json) {
+    // --- websocket --
+    const message = JSON.stringify(json);
+   
+    ws.send(message);
+    
+  }
+  
+  // start PeerConnection
+  function connect() {
+    call();
+    // updateButtons();
+  }
+  
+  function call() {
+    console.log('calling ..');
+    broadcastJson({type: "call"});
+  }
+  
+  // close PeerConnection
+  function disconnect() {
+  
+    broadcastJson({type: "bye"});
+  
+    // ---- close all peers ---
+    closeAllConnections();
+    removeAllRemoteVideo();
+  
+    // updateButtons();
+  }
+  initMcu();
+//let isMixStarted = false;
 
-// //////--- websocket --/////
-// json.to = id;
-// const message = JSON.stringify(json);
+
+// start PeerConnection
+
+
+
+
+
+
+
+  
+};
+ws.onclose = function(evt) {
+  console.log('Socket is closed. Reconnect will be attempted in 1 second.', evt.reason);
+  setTimeout(function() {
+    online();
+  }, 500);
+};
  
-// wi.send(message); 
-// }
-
-// function broadcastJson(json) {
-// // --- websocket --
-// const message = JSON.stringify(json);
-
-// wi.send(message); 
-// }
-// };
-
-// } else {
-//   console.log('wi closed');
-// }
-// }
+}
 
 
 function handleMessage(message) {
@@ -355,53 +316,16 @@ function startMix() {
     mixVideo.volume = 0;
   }
 }
-function removeAllRemoteVideo() {
-    while (remoteContainer.firstChild) {
-      remoteContainer.firstChild.pause();
-      remoteContainer.firstChild.srcObject = null;
-      remoteContainer.removeChild(remoteContainer.firstChild);
-    }
-  }
+
 // -----  signaling ----
-function sendJson(id, json) {
 
-  // --- websocket --
-  json.to = id;
-  const message = JSON.stringify(json);
-  ws.send(message);
-  // wi.send(message);
+function removeAllRemoteVideo() {
+  while (remoteContainer.firstChild) {
+    remoteContainer.firstChild.pause();
+    remoteContainer.firstChild.srcObject = null;
+    remoteContainer.removeChild(remoteContainer.firstChild);
+  }
 }
-
-function broadcastJson(json) {
-  // --- websocket --
-  const message = JSON.stringify(json);
-  ws.send(message);
-  // wi.send(message);
-}
-
-// start PeerConnection
-function connect() {
-  call();
-  // updateButtons();
-}
-
-function call() {
-  console.log('calling ..');
-  broadcastJson({type: "call"});
-}
-
-// close PeerConnection
-function disconnect() {
-
-  broadcastJson({type: "bye"});
-
-  // ---- close all peers ---
-  closeAllConnections();
-  removeAllRemoteVideo();
-
-  // updateButtons();
-}
-
 // ========== initilaise onload ========
 initMcu();
 console.log('=== ready ===');
