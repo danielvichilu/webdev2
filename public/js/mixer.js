@@ -355,7 +355,13 @@ function startMix() {
     mixVideo.volume = 0;
   }
 }
-
+function removeAllRemoteVideo() {
+    while (remoteContainer.firstChild) {
+      remoteContainer.firstChild.pause();
+      remoteContainer.firstChild.srcObject = null;
+      remoteContainer.removeChild(remoteContainer.firstChild);
+    }
+  }
 // -----  signaling ----
 function sendJson(id, json) {
 
