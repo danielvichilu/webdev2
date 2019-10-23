@@ -90,6 +90,86 @@ ws.onmessage = function (evt) {
   handleMessage(message);
   }
 };
+ws.onclose = function(evt) {
+  console.log('Socket is closed. Reconnect will be attempted in 1 second.', evt.reason);
+  setTimeout(function() {
+  let wsProtocol = 'ws://';
+let protocol = window.location.protocol;
+
+if (protocol === 'https:') {
+  wsProtocol = 'wss://';
+}
+    let wsUrl = wsProtocol +  window.location.hostname + ':' + window.location.port + '/';
+    let ws = new WebSocket(wsUrl);
+    ws.onopen = function (evt) {
+      console.log('ws open()');
+    };
+    ws.onerror = function (err) {
+      console.error('ws onerror() ERR:', err);
+    };
+    ws.onmessage = function (evt) {
+      const message = JSON.parse(evt.data);
+      {
+      handleMessage(message);
+      }
+    };
+    setSendJsonFunc(sendJson);
+setDisconnectFunc(disconnect);
+setBandwidth(512, 64);  // kps
+//setBandwidth(1024, 128);  // kps
+let mcu = new BrowserMCU();
+
+//let isMixStarted = false;
+function initMcu() {
+  // --- init at once ---
+  mcu.init(canvasMix, remoteContainer, BrowserMCU.AUDIO_MODE_ALL);
+  // --- set frame rate --
+  mcu.setFrameRate(25);
+
+}
+
+    function sendJson(id, json) {
+
+        // --- websocket --
+        json.to = id;
+        const message = JSON.stringify(json);
+       
+         ws.send(message);
+      }
+      
+      function broadcastJson(json) {
+        // --- websocket --
+        const message = JSON.stringify(json);
+       
+        ws.send(message);
+        
+      }
+      
+      // start PeerConnection
+      function connect() {
+        call();
+        // updateButtons();
+      }
+      
+      function call() {
+        console.log('calling ..');
+        broadcastJson({type: "call"});
+      }
+      
+      // close PeerConnection
+      function disconnect() {
+      
+        broadcastJson({type: "bye"});
+      
+        // ---- close all peers ---
+        closeAllConnections();
+        removeAllRemoteVideo();
+      
+        // updateButtons();
+      }
+      initMcu();
+
+  }, 500);
 
 // /////----webSocketInternet----////
 // online()
