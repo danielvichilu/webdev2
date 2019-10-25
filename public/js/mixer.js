@@ -52,7 +52,7 @@ RTCSessionDescription = window.RTCSessionDescription || window.webkitRTCSessionD
 // }, 2000)
 // }, 3000);
 
-setLocalStream(localstreamm);
+
 // --- setup peer manage functions ---
 // // setSendJsonFunc(sendJson);
 // setDisconnectFunc(disconnect);
@@ -317,6 +317,7 @@ function startMix() {
   }
 }
 let localstreamm = canvasMix.captureStream(25);
+setLocalStream(localstreamm);
 // -----  signaling ----
 
 function removeAllRemoteVideo() {
