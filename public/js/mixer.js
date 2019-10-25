@@ -1,4 +1,4 @@
-let canvasMix = document.getElementById('canvas_mix');
+let canvasMix = document.querySelector('canvas');
 let remoteContainer = document.getElementById('video_container');
 let mixVideo = document.getElementById('mix_video');
 // --- prefix -----
@@ -7,7 +7,7 @@ navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia 
 RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
 RTCSessionDescription = window.RTCSessionDescription || window.webkitRTCSessionDescription || window.mozRTCSessionDescription;
 
-let localstreamm = canvasMix.captureStream(25);
+
 
 ///recordVideo
 // var recordedChunks = [];
@@ -316,7 +316,7 @@ function startMix() {
     mixVideo.volume = 0;
   }
 }
-
+let localstreamm = canvasMix.captureStream(25);
 // -----  signaling ----
 
 function removeAllRemoteVideo() {
