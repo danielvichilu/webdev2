@@ -198,9 +198,7 @@ let _audioBandwidth = 64;  // kpbs
       console.warn('--- NOT SUPPORTED YET, IGNORE ---');
     };
     // --- other events ----
-    peer.onicecandidateerror = function (evt) {
-      console.error('ICE candidate ERROR:', evt);
-    };
+  
     peer.onsignalingstatechange = function() {
       console.log('== signaling state=' + peer.signalingState);
     };
