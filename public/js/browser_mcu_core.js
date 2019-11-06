@@ -1,4 +1,6 @@
+
 "use strict"
+
 var BrowserMCU = function() {
   // --- for video mix ---
   const MAX_MEMBER_COUNT = 36;
@@ -6,21 +8,30 @@ var BrowserMCU = function() {
   let remoteVideos = [];
   let mixStream = null;
   let videoContainer = null;
-  const MIX_CAPTURE_FPS = 25;
+  
+  const MIX_CAPTURE_FPS = 15;
   let canvasMix = null;
   let ctxMix = null;
   let animationId = null;
   let keepAnimation = false;
 
-  let mixWidth = 1;
-  let mixHeight = 1;
-
+  let mixWidth = 320;
+  let mixHeight = 240;
+  //let remoteVideoWidthRate = 16; // 16:9
+  //let remoteVideoHeightRate = 9; // 16:9
+  let remoteVideoWidthRate = 4; // 4:3
+  let remoteVideoHeightRate = 3; // 4:3
+  let remoteVideoUnit = 20; // NOTE: seems no effect
 
   let frameRate = MIX_CAPTURE_FPS; // Frame per second
+  let hideRemoteVideoFlag = false; // Hide Remote Video
 
-
-  // // -- for audio mix --
+  // -- for audio mix --
+  //const _AUDIO_MODE_NONE = 0;
+  //const _AUDIO_MODE_MINUS_ONE = 1;
   const _AUDIO_MODE_ALL = 2;
+  const AuidoContect = window.AudioContext || window.webkitAudioContext;
+  const audioContext = new AuidoContect(); //new window.AudioContext();
   let audioMode = _AUDIO_MODE_ALL;
   let inputNodes = [];
   let minusOneOutputNodes = [];
@@ -33,6 +44,7 @@ var BrowserMCU = function() {
   this.setCanvas = function(canvas) {
     canvasMix = canvas;
     ctxMix = canvasMix.getContext('2d');
+    ctxMix.fillStyle = 'rgb(128, 128, 255)';
     mixWidth = canvasMix.width;
     mixHeight = canvasMix.height;
   }
@@ -67,7 +79,6 @@ var BrowserMCU = function() {
   }
 
   // --- change canvas sise ---
- 
   this.updateCanvasSize = function() {
     if (canvasMix) {
       mixWidth = canvasMix.width;
@@ -80,6 +91,12 @@ var BrowserMCU = function() {
   // --- start/stop Mix ----
   this.startMix = function() {
     mixStream = canvasMix.captureStream(frameRate);
+    if (audioMode === BrowserMCU.AUDIO_MODE_ALL) {
+      mixAllOutputNode = audioContext.createMediaStreamDestination();
+      audioMixAllStream = mixAllOutputNode.stream;
+      mixStream.addTrack(audioMixAllStream.getAudioTracks()[0]);
+    }
+
     animationId = window.requestAnimationFrame(_drawMixCanvas);
     keepAnimation = true;
     console.log('--start mix and capture stream--');
@@ -87,7 +104,8 @@ var BrowserMCU = function() {
 
   this.stopMix = function() {
     if (mixAllOutputNode) {
-      // audioMixAllStream = null;
+      // NG mixAllOutputNode.stop();
+      audioMixAllStream = null;
       mixAllOutputNode = null;
     }
 
@@ -110,13 +128,15 @@ var BrowserMCU = function() {
       if (! animationId) {
         console.warn('WARN: mcu state NOT certain');
       }
+
       return true;
     }
     else {
       if (animationId) {
         console.warn('WARN: mcu state NOT certain');
       }
-       return false;
+
+      return false;
     }
   }
 
@@ -136,13 +156,13 @@ var BrowserMCU = function() {
     return mixStream;
   }
 
-
-  // ---- mix video++ ----
+  // ---- mix video ----
   function _clearMixCanvas() {
     ctxMix.fillRect(0, 0, mixWidth, mixHeight);
   }
 
   function _drawMixCanvas() {
+    //console.log('--drawMixCanvas--');
     let i = 0;
     for(let key in remoteVideos) {
       let video = remoteVideos[key];
@@ -162,34 +182,37 @@ var BrowserMCU = function() {
     _drawVideoGridWithClop(ctxMix, videoElement, destLeft, destTop, gridWidth, gridHeight);
   }
 
-function _drawVideoGridWithClop(ctx, video, destLeft, destTop, gridWidth, gridHeight) {
-  const gridRatio = gridWidth / gridHeight;
+  function _drawVideoGridWithClop(ctx, video, destLeft, destTop, gridWidth, gridHeight) {
+    const gridRatio = gridWidth / gridHeight;
+ // === make 4:3 area ====
+ let unit = 480; // (if same as Src Height, then 100% size)
+ unit = video.videoHeight;
 
-  // === make 4:3 area ====
-  let unit = 480; // (if same as Src Height, then 100% size)
-  unit = video.videoHeight;
-
-  const srcWidth = unit * gridRatio; // OK
-  const srcHeight = unit; // OK
-  const xCenter = video.videoWidth / 2;
-  const yCenter =  video.videoHeight / 2;
-  const srcLeft = xCenter - (srcWidth /2);
-  const srcTop = yCenter - (srcHeight /2);
-  ctx.drawImage(video, srcLeft, srcTop, srcWidth, srcHeight,
-    destLeft, destTop, gridWidth, gridHeight
-  );
-}
-
-  // ---- matrix info ---
-  let memberCount = 1;
-  let horzCount = 1;
-  let vertCount = 1;
+ const srcWidth = unit * gridRatio; // OK
+ const srcHeight = unit; // OK
+ const xCenter = video.videoWidth / 2;
+ const yCenter =  video.videoHeight / 2;
+ const srcLeft = xCenter - (srcWidth /2);
+ const srcTop = yCenter - (srcHeight /2);
+ ctx.drawImage(video, srcLeft, srcTop, srcWidth, srcHeight,
+   destLeft, destTop, gridWidth, gridHeight
+ );
   
-  let gridWidth = null; 
-  let gridHeight =null;
+  }
 
-  
-// --- frexible vert --- horz/vert count flexible (2x1, 3x2, 4x3, 5x4)
+   // ---- matrix info ---
+   let memberCount = 1;
+   let horzCount = 1;
+   let vertCount = 1;
+   
+   let gridWidth = null; 
+   let gridHeight =null;
+ 
+   
+ 
+
+  // --- frexible vert --- horz/vert count flexible (2x1, 3x2, 4x3, 5x4)
+ // --- frexible vert --- horz/vert count flexible (2x1, 3x2, 4x3, 5x4)
 
 function _calcGridHorzVert() {
   memberCount = _getRemoteVideoCount();
@@ -203,42 +226,125 @@ function _calcGridHorzVert() {
 }
 
   // ------- handling remote video --------------
-
-
   function _getRemoteVideoCount() {
     return Object.keys(remoteVideos).length;
   }
-  
+
   this.addRemoteVideo = function(stream) {
-  //   // --- check for double add ---
-
-    let remoteVideo = document.createElement('video');
-    remoteVideo.id = 'remotevideo_' + stream.id;
-    const videoId = "remotevideo_" + stream.id;
-    let existRemoteVideo = document.getElementById(videoId); //'remotevideo_' + event.stream.id);
-    if (existRemoteVideo) {
-      console.warn('remote video ALREADY EXIST stream.id=' + stream.id);
-      return;
+    //   // --- check for double add ---
+  
+      let remoteVideo = document.createElement('video');
+      remoteVideo.id = 'remotevideo_' + stream.id;
+      const videoId = "remotevideo_" + stream.id;
+      let existRemoteVideo = document.getElementById(videoId); //'remotevideo_' + event.stream.id);
+      if (existRemoteVideo) {
+        console.warn('remote video ALREADY EXIST stream.id=' + stream.id);
+        return;
+      }
+     
+      remoteVideo.controls = true;
+      
+      let {width, height} = stream.getTracks()[0].getSettings();
+      let settings = stream.getTracks()[0].getSettings();
+      gridWidth=width;
+      gridHeight=height;
+      remoteVideo.srcObject = stream;
+  
+      videoContainer.appendChild(remoteVideo);
+  
+      remoteVideo.volume = 0;
+      remoteVideo.play();
+  
+      remoteStreams[stream.id] = stream;
+      remoteVideos[stream.id] = remoteVideo;
+      _calcGridHorzVert();
+      _clearMixCanvas();
     }
-   
-    remoteVideo.controls = true;
-    
-    let {width, height} = stream.getTracks()[0].getSettings();
-    let settings = stream.getTracks()[0].getSettings();
-    gridWidth=width;
-    gridHeight=height;
-    remoteVideo.srcObject = stream;
+  
 
-    videoContainer.appendChild(remoteVideo);
+  this.removeRemoteVideo = function(stream) {
+    const videoId = "remotevideo_" + stream.id;
+    let remoteVideo = document.getElementById(videoId); //'remotevideo_' + event.stream.id);
+    remoteVideo.pause();
+    remoteVideo.srcObject = null;
+    videoContainer.removeChild(remoteVideo);
 
-    remoteVideo.volume = 0;
-    remoteVideo.play();
+    let video = remoteVideos[stream.id];
+    if (video !== remoteVideo) {
+      console.error('VIDEO element NOT MATCH');
+    }
+    // NG //console.log('Before Delete video len=' + remoteVideos.length);
+    console.log('Before Delete video keys=' + Object.keys(remoteVideos).length);
+    delete remoteVideos[stream.id];
+    // NG //console.log('After Delete video len=' + remoteVideos.length);
+    console.log('After Delete video keys=' + Object.keys(remoteVideos).length);
 
-    remoteStreams[stream.id] = stream;
-    remoteVideos[stream.id] = remoteVideo;
+    // NG //console.log('Before Delete Stream len=' + remoteStreams.length);
+    console.log('Before Delete Stream keys=' + Object.keys(remoteStreams).length);
+    delete remoteStreams[stream.id];
+    // NG //console.log('After Delete Stream len=' + remoteStreams.length);
+    console.log('After Delete Stream keys=' + Object.keys(remoteStreams).length);
+
     _calcGridHorzVert();
     _clearMixCanvas();
   }
+
+  this.removeAllRemoteVideo = function() {
+    console.log('===== removeAllRemoteVideo ======');
+    for(let key in remoteVideos) {
+      let video = remoteVideos[key];
+      video.pause();
+      video.srcObject = null;
+      videoContainer.removeChild(video);
+    }
+    remoteVideos = [];
+
+    for(let key in remoteStreams) {
+      let stream = remoteStreams[key];
+      _stopStream(stream);
+    }
+    remoteStreams = [];
+
+    _calcGridHorzVert();
+    _clearMixCanvas();
+  }
+  // --- handling remote audio ---
+  this.addRemoteAudio = function(stream) {
+    console.log('addRemoteAudio()');
+
+    if (audioMode === BrowserMCU.AUDIO_MODE_NONE) {
+      // AUDIO_MODE_NONE
+      console.log('BrowserMCU.AUDIO_MODE_NONE: ignore remote audio');
+      return;
+    }
+
+    // --- check for double add ---
+    let existRemoteNode = inputNodes[stream.id];
+    if (existRemoteNode) {
+      console.warn('remote audio node ALREADY EXIST stream.id=' + stream.id);
+      return;
+    }
+
+    let remoteNode = audioContext.createMediaStreamSource(stream);
+    inputNodes[stream.id] = remoteNode;
+
+    if (audioMode === BrowserMCU.AUDIO_MODE_ALL) {
+      console.log('BrowserMCU.AUDIO_MODE_ALL: mix all audo');
+      remoteNode.connect(mixAllOutputNode);
+    }
+    else if (audioMode === BrowserMCU.AUDIO_MODE_MINUS_ONE) {
+      console.warn('DO NOT use addRemoteAudio() on BrowserMCU.AUDIO_MODE_MINUS_ONE');
+    }
+    else if (audioMode === BrowserMCU.AUDIO_MODE_NONE) {
+      // AUDIO_MODE_NONE
+      console.log('BrowserMCU.AUDIO_MODE_NONE: ignore remote audio');
+    }
+    else {
+      // WRONG audioMode
+      console.error('BAD audioMode');
+    }
+  }
+
 
   // --- handling remote audio ---
   this.addRemoteAudio = function(stream) {
@@ -304,6 +410,10 @@ function _calcGridHorzVert() {
       return stream;
     }
 
+    let newOutputNode = audioContext.createMediaStreamDestination();
+    let newAudioMixStream = newOutputNode.stream;
+    minusOneOutputNodes[peerId] = newOutputNode;
+    minusOneStreams[peerId] = newAudioMixStream;
     for (let key in inputNodes) {
       if (key === peerId) {
         console.log('skip input(id=' + key + ') because same id=' + peerId);
@@ -314,6 +424,16 @@ function _calcGridHorzVert() {
         otherMicNode.connect(newOutputNode);
       }
     }
+
+    // -- add Video Track --
+    if (mixStream) {
+      newAudioMixStream.addTrack(mixStream.getVideoTracks()[0]);
+    }
+    else {
+      console.warn('Video Track NOT READY YET');
+    }
+
+    return newAudioMixStream;
   }
 
   this.getMinusOneStream = function(peerId) {
@@ -347,62 +467,6 @@ function _calcGridHorzVert() {
     }
     else {
       console.warn('NO Audio Tracks in stream');
-    }
-  }
-this.removeAllRemoteVideo = function() {
-    console.log('===== removeAllRemoteVideo ======');
-    for(let key in remoteVideos) {
-      let video = remoteVideos[key];
-      video.pause();
-      video.srcObject = null;
-      videoContainer.removeChild(video);
-    }
-    remoteVideos = [];
-
-    for(let key in remoteStreams) {
-      let stream = remoteStreams[key];
-      _stopStream(stream);
-    }
-    remoteStreams = [];
-
-    _calcGridHorzVert();
-    _clearMixCanvas();
-  }
-
-  // --- handling remote audio ---
-  this.addRemoteAudio = function(stream) {
-    console.log('addRemoteAudio()');
-
-    if (audioMode === BrowserMCU.AUDIO_MODE_NONE) {
-      // AUDIO_MODE_NONE
-      console.log('BrowserMCU.AUDIO_MODE_NONE: ignore remote audio');
-      return;
-    }
-
-    // --- check for double add ---
-    let existRemoteNode = inputNodes[stream.id];
-    if (existRemoteNode) {
-      console.warn('remote audio node ALREADY EXIST stream.id=' + stream.id);
-      return;
-    }
-
-    let remoteNode = audioContext.createMediaStreamSource(stream);
-    inputNodes[stream.id] = remoteNode;
-
-    if (audioMode === BrowserMCU.AUDIO_MODE_ALL) {
-      console.log('BrowserMCU.AUDIO_MODE_ALL: mix all audo');
-      remoteNode.connect(mixAllOutputNode);
-    }
-    else if (audioMode === BrowserMCU.AUDIO_MODE_MINUS_ONE) {
-      console.warn('DO NOT use addRemoteAudio() on BrowserMCU.AUDIO_MODE_MINUS_ONE');
-    }
-    else if (audioMode === BrowserMCU.AUDIO_MODE_NONE) {
-      // AUDIO_MODE_NONE
-      console.log('BrowserMCU.AUDIO_MODE_NONE: ignore remote audio');
-    }
-    else {
-      // WRONG audioMode
-      console.error('BAD audioMode');
     }
   }
 
@@ -467,3 +531,4 @@ this.removeAllRemoteVideo = function() {
 BrowserMCU.AUDIO_MODE_NONE = 0;
 BrowserMCU.AUDIO_MODE_MINUS_ONE = 1;
 BrowserMCU.AUDIO_MODE_ALL = 2;
+
