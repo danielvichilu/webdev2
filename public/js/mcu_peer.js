@@ -119,13 +119,15 @@ let _audioBandwidth = 64;  // kpbs
   }
 
   function getConnectionCount() {
-    
+    //let l1 = _Connections.length;
+    //let l2 = Object.keys(_Connections).length;
+    //console.log('getConnectionCount() l1=' + l1 + '  l2=' + l2 );
     return  Object.keys(_Connections).length;
   }
 
   // ---------------------- connection handling -----------------------
   function prepareNewConnection(id) {
-    // let pc_config = {"iceServers":[]};
+    //let pc_config = {"iceServers":[]};
     let pc_config = _PeerConnectionConfig;
     let peer = new RTCPeerConnection(pc_config);
     // --- on get remote stream ---
@@ -169,14 +171,32 @@ let _audioBandwidth = 64;  // kpbs
       if (evt.candidate) {
         console.log(evt.candidate);
         if (useTrickleICE) {
+          // Trickle ICE の場合は、ICE candidateを相手に送る
+          // send ICE candidate when using Trickle ICE
           sendIceCandidate(id, evt.candidate);
         }
-      } }
+        else {
+          // Vanilla ICE の場合には、何もしない
+          // do NOTHING for Vanilla ICE
+        }
+      } else {
+        console.log('empty ice event');
+        if (useTrickleICE) {
+          // Trickle ICE の場合は、何もしない
+          // do NOTHING for Trickle ICE
+        }
+        else {
+          // Vanilla ICE の場合には、ICE candidateを含んだSDPを相手に送る
+          // send SDP with ICE candidtes when using Vanilla ICE
+          sendSdp(id, peer.localDescription);
+        }
+      }
+    };
     // --- when need to exchange SDP ---
-    // peer.onnegotiationneeded = function(evt) {
-    //   console.log('-- onnegotiationneeded() ---');
-    //   console.warn('--- NOT SUPPORTED YET, IGNORE ---');
-    // };
+    peer.onnegotiationneeded = function(evt) {
+      console.log('-- onnegotiationneeded() ---');
+      console.warn('--- NOT SUPPORTED YET, IGNORE ---');
+    };
     // --- other events ----
     peer.onicecandidateerror = function (evt) {
       console.error('ICE candidate ERROR:', evt);
@@ -186,6 +206,7 @@ let _audioBandwidth = 64;  // kpbs
     };
     peer.oniceconnectionstatechange = function() {
       console.log('== ice connection state=' + peer.iceConnectionState);
+      //showState('ice connection state=' + peer.iceConnectionState);
       _logState('ice connection state=' + peer.iceConnectionState);
       if (peer.iceConnectionState === 'disconnected') {
         console.log('-- disconnected, but wait for re-connect --');
@@ -209,6 +230,8 @@ let _audioBandwidth = 64;  // kpbs
     peer.onremovestream = function(event) {
       console.log('-- peer.onremovestream()');
       let stream = event.stream;
+      //removeRemoteVideo(stream.id, stream); // NOT NEED
+
       if (stream.getVideoTracks().length > 0) {
         console.log('removing remote video');
         _mcuObject.removeRemoteVideo(stream);
@@ -244,9 +267,14 @@ let _audioBandwidth = 64;  // kpbs
         console.error('NO method to add localStream');
       }
     }
-    // else {
-    //   console.error('NO mix stream, but continue.');
-    // }
+    else {
+      console.error('NO mix stream, but continue.');
+    }
+
+    // MOVED to caller: addConnection(id, peer);
+    //if (_updateUIFunc) {
+    //  _updateUIFunc();
+    //}
     return peer;
   }
 
@@ -279,6 +307,7 @@ let _audioBandwidth = 64;  // kpbs
       console.error('peerConnection NOT exist!');
       return;
     }
+    
     peerConnection.createAnswer()
     .then(function (sessionDescription) {
       console.log('createAnswer() succsess in promise');
@@ -293,7 +322,14 @@ let _audioBandwidth = 64;  // kpbs
     }).then(function() {
       console.log('setLocalDescription() succsess in promise');
       if (useTrickleICE) {
+        // -- Trickle ICE の場合は、初期SDPを相手に送る --
+        // send initial SDP when using Trickle ICE
         sendSdp(id, peerConnection.localDescription);
+      }
+      else {
+        // -- Vanilla ICE の場合には、まだSDPは送らない --
+        // wait for ICE candidates for Vanilla ICE
+        //sendSdp(id, peerConnection.localDescription);
       }
     }).catch(function(err) {
       console.error(err);
@@ -313,12 +349,22 @@ let _audioBandwidth = 64;  // kpbs
 
 
   // ----- band width -----
+  // for chrome
+  //audioBandwidth = 50; // kbps
+  //videoBandwidth = 256; // kbps
   function _setBandwidthInSDP(sdp, audioBandwidth, videoBandwidth) {
     let sdpNew = sdp.replace(/a=mid:audio\r\n/g, 'a=mid:audio\r\nb=AS:' + audioBandwidth + '\r\n');
     sdpNew = sdpNew.replace(/a=mid:video\r\n/g, 'a=mid:video\r\nb=AS:' + videoBandwidth + '\r\n');
+
+    //// -- trial for firefox, but not work between chrome - firefox --
+    //let sdpNew = sdp.replace(/a=mid:audio\r\n/g, 'a=mid:audio\r\nb=AS:' + audioBandwidth + '\r\n' + 'b=TIAS:' + audioBandwidth*1000 + '\r\n');
+    //sdpNew = sdpNew.replace(/a=mid:video\r\n/g, 'a=mid:video\r\nb=AS:' + videoBandwidth + '\r\n' + 'b=TIAS:' + videoBandwidth*1000 + '\r\n');
+    //// -- trial for firefox, but not work between chrome - firefox --
+
     return sdpNew;
   }
-// ---- send signaling info ----
+
+  // ---- send signaling info ----
   let _sendJsonFunc = null;
 
   function setSendJsonFunc(func) {
@@ -329,11 +375,14 @@ let _audioBandwidth = 64;  // kpbs
     console.log('---sending sdp ---');
     const jsonSDP = sessionDescription.toJSON();
     console.log('sending to:' + id + '  SDP:', jsonSDP);
+
+    //sendJson(id, jsonSDP);
     _sendJsonFunc(id, jsonSDP);
   }
 
   function sendIceCandidate(id, candidate) {
     console.log('---sending ICE candidate ---');
     const obj = { type: 'candidate', ice: candidate };
+    //sendJson(id, obj);
     _sendJsonFunc(id, obj);
   }
