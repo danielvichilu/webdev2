@@ -1,5 +1,15 @@
+//
+// Browser MCU sample server
+//   https://github.com/mganeko/browser_mcu_server
+//   browser_mcu_server is provided under MIT license
+//
+//   This sample is using https://github.com/mganeko/browser_mcu_core
+//
+
 'use strict';
+
 const fs = require('fs');
+
 let serverOptions = null;
 let mcuOptions = null;
 if (isFileExist('options.js')) {
@@ -25,21 +35,21 @@ if (serverOptions.useHttps) {
 
 const childProcess = require('child_process');
 let headless = null;
+
 const http = require("http");
+const https = require("https");
 const WebSocketServer = require('ws').Server;
 const express = require('express');
-const https = require("https");
+
 const app = express();
 const webPort = serverOptions.listenPort;
 app.use(express.static('public'));
 
-
 let webServer = null;
 if (serverOptions.useHttps) {
-
   // -- https ---
   webServer = https.createServer( sslOptions, app ).listen(webPort, function(){
-    console.log('Web server start. https://' + serverOptions.hostName + ':' + webServer.address().port + '/mix.html');
+    console.log('Web server start. https://' + serverOptions.hostName + ':' + webServer.address().port + '/');
   });
 }
 else {
@@ -66,28 +76,17 @@ function getId(ws) {
   }
 }
 
-// let usb = require('usb');
-// usb.on('attach',function (devices){
-//   broadcast ( { type: 'notify', text: ' number of ports ' + JSON.stringify(devices.portNumbers) })})
-//   usb.on('detach',function (devices){
-//   broadcast ( { type: 'notify', text: ' number of ports ' + JSON.stringify(devices.portNumbers) })})
-
 function getClientCount() {
+  // NG:  return wsServer.clients.length;
   return wsServer.clients.size;
 }
-app.get('/', function (req, res) {
-res.send(getClientCount);
-});
-
-
 
 wsServer.on('connection', function connection(ws) {
   console.log('client connected. id=' + getId(ws) + '  , total clients=' + getClientCount());
-  broadcast( { type: 'notify', text: 'new client connected. count=' + getClientCount()});
+  broadcast( { type: 'notify', text: 'new client connected. count=' + getClientCount() } );
 
   ws.on('close', function () {
     const fromId = getId(ws);
-
     console.log('client closed. id=' + fromId + '  , total clients=' + getClientCount());
     broadcast( { type: 'client_disconnect', from: fromId});
     broadcast( { type: 'notify', text: 'client closed. count=' + getClientCount() } );
@@ -154,6 +153,7 @@ function sendTo(toId, message) {
     }
   });
 }
+
 // --- file check ---
 function isFileExist(path) {
   try {
@@ -173,6 +173,7 @@ function isFileExist(path) {
 }
 
 // --- headless browser ---
+
 function startHeadlessChrome() {
   let openURL = buildURL('');
   let mcuArgs = buildArgs(openURL);
@@ -209,6 +210,15 @@ function buildURL(channel) {
   console.log('mcu URL=' + url);
   return url;
 }
+
+/*
+function buildArgs(url) {
+  let args = mcuOptions.headlessArgs;
+  args.push(url);
+  //console.log(args);
+  return args;
+}
+*/
 
 function buildArgs(url) {
   let args = [].concat(mcuOptions.headlessArgs);
