@@ -43,7 +43,6 @@
     console.error('ws onerror() ERR:', err);
   };
   ws.onmessage = function(evt) {
-    console.log('ws onmessage() data:', evt.data);
     const message = JSON.parse(evt.data);
     handleMessage(message);
   };
